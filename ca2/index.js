@@ -1,5 +1,4 @@
-import {log} from "./modules/draw_background.js"
-log();
+
 let canvas;
 let context;
 
@@ -12,7 +11,6 @@ let moveDown = false;
 let fpsInterval = 1000 / 30; 
 let now;
 let then = Date.now();
-
 let tilesPerRow = 6;
 let tileSize = 16;
 let background = [
@@ -52,7 +50,23 @@ let player = {
 }
 let playerImage = new Image();
 let backgroundImage = new Image();
+let enemyImage = new Image();
+let disarmImage = new Image();
 
+// for enemy
+let enemy = {
+    xPos: 200,
+    yPos: 100,
+    width:30,
+    height: 50,
+    xChange: 0,
+    yChange:0,
+    frameX:0,
+    frameY:0,
+    casting:"no",
+    direction:0,
+}
+let objects = [player,enemy];
 document.addEventListener("DOMContentLoaded", init, false)
 
 function init() {
@@ -60,6 +74,8 @@ function init() {
     context = canvas.getContext("2d");
     playerImage.src = "Wizard_Pack/idle.png";
     backgroundImage.src = "Dungeon_Tileset.png";
+    enemyImage.src = "death.png";
+    disarmImage.src = "disarm.png"
     window.addEventListener("keydown",activate,false);
     window.addEventListener("keyup",deactivate,false);
     draw();
@@ -70,12 +86,13 @@ function draw(){
     context.clearRect(0,0,canvas.width,canvas.height);
     display_background();
     context.drawImage(playerImage,player.frameX,player.frameY,200,200, player.xPos, player.yPos,150,150);
+    context.drawImage(enemyImage,enemy.frameX,enemy.frameY,30,50, enemy.xPos, enemy.yPos,enemy.width,enemy.height);
     calculate_pos();
-    //stopping momentum if hits wall
-    if(!(((-40<player.xPos) && (player.xPos<400)))){player.xChange = 0;}
-    if(!(((-30<player.yPos) && (player.yPos<200)))){player.yChange = 0;}
+    create_boundries();
     move_player();
     cast_spell();
+    check_if_hit();
+    move_enemy();
 
 }
 
@@ -102,6 +119,20 @@ function activate(event) {
     }
 
 }
+function display_background(){
+    for (let r = 0; r < 20; r += 1) {
+        for (let c = 0; c < 32; c += 1) {
+            let tile = background[r][c];
+            if (tile >= 0) {
+                let tileRow = Math.floor(tile / tilesPerRow);
+                let tileCol = Math.floor(tile % tilesPerRow);
+                context.drawImage(backgroundImage,
+                    tileCol * tileSize, tileRow * tileSize, tileSize, tileSize,
+                    c * tileSize, r * tileSize, tileSize, tileSize);
+            }
+        }
+    }
+}
 
 function deactivate(event) {
     let key = event.key;
@@ -119,21 +150,6 @@ function deactivate(event) {
         player.moving = false;
     } else if(key === "e"){
         player.casting = "no";
-        console.log('no');
-    }
-}
-function display_background(){
-    for (let r = 0; r < 20; r += 1) {
-        for (let c = 0; c < 32; c += 1) {
-            let tile = background[r][c];
-            if (tile >= 0) {
-                let tileRow = Math.floor(tile / tilesPerRow);
-                let tileCol = Math.floor(tile % tilesPerRow);
-                context.drawImage(backgroundImage,
-                    tileCol * tileSize, tileRow * tileSize, tileSize, tileSize,
-                    c * tileSize, r * tileSize, tileSize, tileSize);
-            }
-        }
     }
 }
 function move_player(){
@@ -185,21 +201,25 @@ function cast_spell(){
             playerImage.src = "Wizard_Pack/Attack2_left.png";
             player.frameY = 0;
             player.frameX = (player.frameX + 231)%1848;
+            cast_disarm("left");
     }
     else if (player.direction === "up"){
             playerImage.src = "Wizard_Pack/Attack2_up.png";
             player.frameX = 0;
             player.frameY = (player.frameY + 231)%1848;
+            cast_disarm("up");
     }
     else if (player.direction === "down"){
             playerImage.src = "Wizard_Pack/Attack2_down.png";
             player.frameX = 0;
             player.frameY = (player.frameY + 231)%1848;
+            cast_disarm("down");
     }
     else{
     playerImage.src = "Wizard_Pack/Attack2.png";
     player.frameY = 0;
     player.frameX = (player.frameX + 231)%1848;
+    cast_disarm("right");
 }
 }
 if (player.casting === "no" && player.moving === false){
@@ -207,5 +227,106 @@ if (player.casting === "no" && player.moving === false){
     player.frameY = 0;
     playerImage.src = "Wizard_Pack/idle.png";
 }
+}
+function create_boundries(){
+    //stopping momentum if hits wall
+    if(!(((-40<player.xPos) && (player.xPos<400)))){player.xChange = 0;}
+    if(!(((-30<player.yPos) && (player.yPos<200)))){player.yChange = 0;}
+}
+function cast_disarm(dir){
+    if(dir === "left"){
+        //console.log("player",player.yPos)
+        //console.log("enemy",enemy.yPos)
+        for(let x of objects){
+            if ((x.xPos< player.xPos)&&(x.yPos-80 < player.yPos )){
+                if((x.yPos>player.yPos)){
+                x.casting = "disarmed";
+                console.log("hit, sir a very palpible hit.");
+            }
+            }
+}
+    }
+if(dir === "right"){
+        //console.log("player",player.yPos)
+        //console.log("enemy",enemy.yPos)
+        for(let x of objects){
+            if ((x.xPos> player.xPos)&&(x.yPos-80 < player.yPos )){
+                if((x.yPos>player.yPos)){
+                x.casting = "disarmed";
+                console.log("hit, sir a very palpible hit.");
+            }
+            }
+}
+    }
+    if(dir === "down"){
+        //console.log("player",player.yPos)
+        //console.log("enemy",enemy.yPos)
+        for(let x of objects){
+            if ((x.yPos> player.yPos)&&(x.xPos-80 < player.xPos )){
+                if((x.xPos>player.xPos)){
+                x.casting = "disarmed";
+                console.log("hit, sir a very palpible hit.");
+            }
+            }
+}
+    }
+    if(dir === "up"){
+        //console.log("player",player.yPos)
+        //console.log("enemy",enemy.yPos)
+        for(let x of objects){
+            if ((x.yPos< player.yPos)&&(x.xPos-80 < player.xPos )){
+                if((x.xPos>player.xPos)){
+                x.casting = "disarmed";
+                console.log("hit, sir a very palpible hit.");
+            }
+            }
+}
+    }
+}
+
+function move_enemy(){
+    let time = Date.now();
+    
+    if (time%10 === 0){
+        enemy.direction = Math.floor(Math.random() * 4);
+    }
+    if((enemy.direction === 0)&&(enemy.xPos > 0)){
+        enemy.xPos -= 1
+    }
+    else if((enemy.direction === 1)&&(enemy.xPos < canvas.width-100)){
+        enemy.xPos += 1
+    }
+    else if((enemy.direction === 2)&&(enemy.yPos < canvas.height-100)){
+        enemy.yPos += 1
+    }
+    else if((enemy.direction === 3)&&(enemy.yPos > 0)){
+        enemy.yPos -= 1
+    }
+}
+function check_if_hit(){
+    enemy_cast();
+    for(let x of objects){
+        if (x.casting === "disarmed"){
+            x.casting = "no"
+            console.log(x)
+            context.drawImage(disarmImage,0,0,10,10, enemy.xPos, enemy.yPos-10,30,30);
+        }
+    }
+
+}
+function enemy_cast(){
+    if((player.yPos < enemy.yPos)&&(player.yPos > enemy.yPos-100)){
+        console.log("hello")
+        if((enemy.direction === 0)&&(player.xPos<enemy.xPos)){
+            context.drawImage(disarmImage,0,0,10,10, enemy.xPos, enemy.yPos-10,30,30);
+            playerImage.src = "Wizard_Pack/Hit.png"
+            player.frameY = 0;
+            player.frameX = (player.frameX + 231)%1848;
+            if(player.xPos>-50){
+                player.xPos -= 2
+            }
+        }
+
+    }
 }
 
