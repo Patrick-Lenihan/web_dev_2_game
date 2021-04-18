@@ -47,6 +47,7 @@ let player = {
     casting:"no",
     moving:false,
     direction:null,
+    time_until_rearm:180,
 }
 let playerImage = new Image();
 let backgroundImage = new Image();
@@ -65,8 +66,10 @@ let enemy = {
     frameY:0,
     casting:"no",
     direction:0,
+    time_until_rearm:180,
 }
 let objects = [player,enemy];
+let fire_spells = []
 document.addEventListener("DOMContentLoaded", init, false)
 
 function init() {
@@ -86,13 +89,17 @@ function draw(){
     context.clearRect(0,0,canvas.width,canvas.height);
     display_background();
     context.drawImage(playerImage,player.frameX,player.frameY,200,200, player.xPos, player.yPos,150,150);
+    if (!(enemy.casting === "dead")){
     context.drawImage(enemyImage,enemy.frameX,enemy.frameY,30,50, enemy.xPos, enemy.yPos,enemy.width,enemy.height);
+    }
     calculate_pos();
     create_boundries();
     move_player();
     cast_spell();
     check_if_hit();
     move_enemy();
+    //console.log(enemy.casting);
+    console.log(player.casting);
 
 }
 
@@ -115,7 +122,15 @@ function activate(event) {
         player.moving = true;
         player.direction = "down";
     } else if (key === "e"){
-        player.casting = "disarm";
+        if(player.casting === "no"){
+        player.casting = "disarm";}
+    } else if (key === "f"){
+        if(player.casting === "no"){
+        player.casting = "fire";}
+    }
+    else if (key === "d"){
+        if(player.casting === "no"){
+        player.casting = "defend";}
     }
 
 }
@@ -149,11 +164,20 @@ function deactivate(event) {
         moveDown = false;
         player.moving = false;
     } else if(key === "e"){
-        player.casting = "no";
+        if(!(player.casting === "disarmed")){
+        player.casting = "no";}
+    }
+    else if(key === "f"){
+        if(!(player.casting === "disarmed")){
+        player.casting = "no";}
+    }
+    else if(key === "d"){
+        if(!(player.casting === "disarmed")){
+        player.casting = "no";}
     }
 }
 function move_player(){
-    if (!(player.casting === "no")){return} 
+    //if (!(player.casting === "no")){return} 
     if(moveLeft && (-40<player.xPos)){
         playerImage.src = "Wizard_Pack/Run_Left.png";
         player.frameY = 0;
@@ -196,6 +220,7 @@ function calculate_pos(){
 }
 
 function cast_spell(){
+    move_spells();
     if (player.casting === "disarm"){
         if (player.direction === "left"){
             playerImage.src = "Wizard_Pack/Attack2_left.png";
@@ -227,6 +252,37 @@ if (player.casting === "no" && player.moving === false){
     player.frameY = 0;
     playerImage.src = "Wizard_Pack/idle.png";
 }
+if(player.casting == "fire"){
+    // pretty ineficent way to do this if you ask me, must fix later reuses code
+    if (player.direction === "left"){
+            playerImage.src = "Wizard_Pack/Attack2_left.png";
+            player.frameY = 0;
+            player.frameX = (player.frameX + 231)%1848;
+            cast_fire("left");
+    }
+    else if (player.direction === "up"){
+            playerImage.src = "Wizard_Pack/Attack2_up.png";
+            player.frameX = 0;
+            player.frameY = (player.frameY + 231)%1848;
+            cast_fire("up");
+    }
+    else if (player.direction === "down"){
+            playerImage.src = "Wizard_Pack/Attack2_down.png";
+            player.frameX = 0;
+            player.frameY = (player.frameY + 231)%1848;
+            cast_fire("down");
+    }
+    else{
+    playerImage.src = "Wizard_Pack/Attack2.png";
+    player.frameY = 0;
+    player.frameX = (player.frameX + 231)%1848;
+    cast_fire("right");
+    }
+
+}
+if(player.casting === "defend"){
+    defend_player();
+}
 }
 function create_boundries(){
     //stopping momentum if hits wall
@@ -241,7 +297,7 @@ function cast_disarm(dir){
             if ((x.xPos< player.xPos)&&(x.yPos-80 < player.yPos )){
                 if((x.yPos>player.yPos)){
                 x.casting = "disarmed";
-                console.log("hit, sir a very palpible hit.");
+                //console.log("hit, sir a very palpible hit.");
             }
             }
 }
@@ -253,7 +309,7 @@ if(dir === "right"){
             if ((x.xPos> player.xPos)&&(x.yPos-80 < player.yPos )){
                 if((x.yPos>player.yPos)){
                 x.casting = "disarmed";
-                console.log("hit, sir a very palpible hit.");
+                //console.log("hit, sir a very palpible hit.");
             }
             }
 }
@@ -265,7 +321,7 @@ if(dir === "right"){
             if ((x.yPos> player.yPos)&&(x.xPos-80 < player.xPos )){
                 if((x.xPos>player.xPos)){
                 x.casting = "disarmed";
-                console.log("hit, sir a very palpible hit.");
+                //console.log("hit, sir a very palpible hit.");
             }
             }
 }
@@ -277,11 +333,93 @@ if(dir === "right"){
             if ((x.yPos< player.yPos)&&(x.xPos-80 < player.xPos )){
                 if((x.xPos>player.xPos)){
                 x.casting = "disarmed";
-                console.log("hit, sir a very palpible hit.");
+                //console.log("hit, sir a very palpible hit.");
             }
             }
 }
     }
+}
+
+function cast_fire(dir){
+    // dir is the direction you want the cast to be in
+    if(dir == "left"){
+        let fire_spell = {
+            direction:"left",
+            xPos:player.xPos,
+            yPos:player.yPos,
+        }
+        fire_spells.push(fire_spell);
+
+    }
+    if(dir == "right"){
+        let fire_spell = {
+            direction:"right",
+            xPos:player.xPos,
+            yPos:player.yPos,
+        }
+        fire_spells.push(fire_spell);
+
+    }
+    if(dir == "up"){
+        let fire_spell = {
+            direction:"up",
+            xPos:player.xPos,
+            yPos:player.yPos,
+        }
+        fire_spells.push(fire_spell);
+
+    }
+    if(dir == "down"){
+        let fire_spell = {
+            direction:"down",
+            xPos:player.xPos,
+            yPos:player.yPos,
+        }
+        fire_spells.push(fire_spell);
+
+    }
+
+}
+function move_spells(){
+    for(let fire of fire_spells){
+        if(fire.direction == "left"){
+            fire.xPos -= 10;
+            context.fillStyle = "orange";
+            context.fillRect(fire.xPos,fire.yPos+50,20,10);
+            if(((enemy.xPos<fire.xPos)&&(fire.xPos< enemy.xPos+20))&&((enemy.yPos<fire.yPos+50)&&(fire.yPos+50< enemy.yPos+50))){
+                enemy.casting = "dead";
+            }
+        }
+        else if(fire.direction == "right"){
+            fire.xPos += 10;
+            context.fillStyle = "orange";
+            context.fillRect(fire.xPos+100,fire.yPos+50,20,10);
+            if(((enemy.xPos<fire.xPos)&&(fire.xPos< enemy.xPos+20))&&((enemy.yPos<fire.yPos+50)&&(fire.yPos+50< enemy.yPos+50))){
+                enemy.casting = "dead";
+            }
+        }
+        else if(fire.direction == "up"){
+            fire.yPos -= 10;
+            context.fillStyle = "orange";
+            context.fillRect(fire.xPos+50,fire.yPos+50,10,20);
+            if(((enemy.xPos<fire.xPos+50)&&(fire.xPos+50< enemy.xPos+20))&&((enemy.yPos<fire.yPos+50)&&(fire.yPos+50< enemy.yPos+50))){
+                enemy.casting = "dead";
+            }
+        }
+        else if(fire.direction == "down"){
+            fire.yPos += 10;
+            context.fillStyle = "orange";
+            context.fillRect(fire.xPos+80,fire.yPos+50,10,20);
+            if(((enemy.xPos<fire.xPos+80)&&(fire.xPos+80< enemy.xPos+20))&&((enemy.yPos<fire.yPos+50)&&(fire.yPos+50< enemy.yPos+50))){
+                enemy.casting = "dead";
+            }
+        }
+    }
+}
+function defend_player(){
+    playerImage.src = "Wizard_Pack/Attack1.png";
+    player.frameY = 0;
+    player.frameX = (player.frameX + 231)%1848;
 }
 
 function move_enemy(){
@@ -304,29 +442,73 @@ function move_enemy(){
     }
 }
 function check_if_hit(){
-    enemy_cast();
+    if(!(player.casting==="defend")){
+        enemy_cast();
+    }
     for(let x of objects){
         if (x.casting === "disarmed"){
-            x.casting = "no"
-            console.log(x)
+            if(x.time_until_rearm===0){
+            x.casting = "no";
+            x.time_until_rearm = 180;
+        }
+            x.time_until_rearm -= 1;
+            console.log(player.time_until_rearm);
             context.drawImage(disarmImage,0,0,10,10, enemy.xPos, enemy.yPos-10,30,30);
         }
     }
 
 }
 function enemy_cast(){
+    if(!(enemy.casting === "disarmed")){
     if((player.yPos < enemy.yPos)&&(player.yPos > enemy.yPos-100)){
-        console.log("hello")
         if((enemy.direction === 0)&&(player.xPos<enemy.xPos)){
-            context.drawImage(disarmImage,0,0,10,10, enemy.xPos, enemy.yPos-10,30,30);
+            context.drawImage(disarmImage,0,0,10,10, enemy.xPos-20, enemy.yPos-10,30,30);
+            context.drawImage(disarmImage,0,0,10,10, enemy.xPos-40, enemy.yPos-10,30,30);
             playerImage.src = "Wizard_Pack/Hit.png"
+            player.casting = "disarmed";
             player.frameY = 0;
             player.frameX = (player.frameX + 231)%1848;
             if(player.xPos>-50){
                 player.xPos -= 2
             }
         }
+        else if((enemy.direction === 1)&&(player.xPos>enemy.xPos)){
+            context.drawImage(disarmImage,0,0,10,10, enemy.xPos, enemy.yPos-10,30,30);
+            playerImage.src = "Wizard_Pack/Hit_Right.png"
+            player.frameY = 0;
+            player.casting = "disarmed";
+            player.frameX = (player.frameX + 231)%1848;
+            if(player.xPos<canvas.width-100){
+                player.xPos += 2
+            }
+        }
 
     }
+    // new
+    else if((player.xPos < enemy.xPos)&&(player.xPos > enemy.xPos-100)){
+        if((enemy.direction === 2)&&(player.yPos>enemy.yPos)){
+            context.drawImage(disarmImage,0,0,10,10, enemy.xPos, enemy.yPos-10,30,30);
+            playerImage.src = "Wizard_Pack/Hit_down.png";
+            player.frameX = 0;
+            player.casting = "disarmed";
+            player.frameY = (player.frameY + 231)%1848;
+            if(player.yPos<canvas.height-100){
+                player.yPos += 2
+            }
+
+        }
+        else if((enemy.direction === 3)&&(player.yPos< enemy.yPos)){
+            context.drawImage(disarmImage,0,0,10,10, enemy.xPos, enemy.yPos-10,30,30);
+            playerImage.src = "Wizard_Pack/Hit_up.png";
+            player.frameX = 0;
+            player.casting = "disarmed";
+            player.frameY = (player.frameY + 231)%1848;
+            if(player.yPos>-50){
+                player.yPos -= 2
+            }
+
+        }
+    }
+}
 }
 
