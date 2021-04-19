@@ -33,7 +33,7 @@ let background = [
     [45,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,45],
     [45,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,45],
     [ 45,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47,47, 45],
-    [ 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45]]
+    [ 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45]];
 
 let player = {
     xPos:100,
@@ -48,11 +48,12 @@ let player = {
     moving:false,
     direction:null,
     time_until_rearm:180,
-}
+};
 let playerImage = new Image();
 let backgroundImage = new Image();
 let enemyImage = new Image();
 let disarmImage = new Image();
+let chaserImage = new Image();
 
 // for enemy
 let enemy = {
@@ -67,10 +68,40 @@ let enemy = {
     casting:"no",
     direction:0,
     time_until_rearm:180,
+};
+let chaser = {
+    xPos: 50,
+    yPos: 50,
+    width:40,
+    height: 50,
+    xChange: 0,
+    yChange:0,
+    frameX:0,
+    frameY:0,
+    casting:"no",
+};
+let objects = [player,enemy,chaser];
+let enemys = [enemy];
+let chasers = [chaser];
+for (let i = 0; i < 1; i += 1) {
+    let enemy = {
+        xPos: 200,
+        yPos: 100,
+        width:30,
+        height: 50,
+        xChange: 0,
+        yChange:0,
+        frameX:0,
+        frameY:0,
+        casting:"no",
+        direction:0,
+        time_until_rearm:180,
+    };
+    enemys.push(enemy);
+    objects.push(enemy);
 }
-let objects = [player,enemy];
-let fire_spells = []
-document.addEventListener("DOMContentLoaded", init, false)
+let fire_spells = [];
+document.addEventListener("DOMContentLoaded", init, false);
 
 function init() {
     canvas = document.querySelector("canvas");
@@ -78,19 +109,40 @@ function init() {
     playerImage.src = "Wizard_Pack/idle.png";
     backgroundImage.src = "Dungeon_Tileset.png";
     enemyImage.src = "death.png";
-    disarmImage.src = "disarm.png"
+    disarmImage.src = "disarm.png";
+    chaserImage.src = "death_scythe.png";
     window.addEventListener("keydown",activate,false);
     window.addEventListener("keyup",deactivate,false);
     draw();
 }
 function draw(){
     window.requestAnimationFrame(draw);
+    console.log(enemys.length);
     controle_frame_rate();
     context.clearRect(0,0,canvas.width,canvas.height);
     display_background();
     context.drawImage(playerImage,player.frameX,player.frameY,200,200, player.xPos, player.yPos,150,150);
-    if (!(enemy.casting === "dead")){
-    context.drawImage(enemyImage,enemy.frameX,enemy.frameY,30,50, enemy.xPos, enemy.yPos,enemy.width,enemy.height);
+    for (let x = 0; x < enemys.length; x += 1) {
+        if (!(enemys[x].casting === "dead")){
+            context.drawImage(enemyImage,enemys[x].frameX,enemys[x].frameY,30,50, enemys[x].xPos, enemys[x].yPos,enemys[x].width,enemys[x].height);
+        }
+        else{
+            //enemys.pop(item);
+            //objects.pop(item);
+            enemys.splice(x,1);
+            console.log(objects);
+        }
+    }
+    for (let x = 0; x < chasers.length; x += 1){
+        if(!(chasers[x].casting === "dead")){
+        context.drawImage(chaserImage,chasers[x].frameX,chasers[x].frameY,40,50, chasers[x].xPos, chasers[x].yPos,chasers[x].width,chasers[x].height);
+    }
+    else{
+        //objects.pop(x)
+        //objects = remove(objects,x)
+        objects.splice(x,1);
+
+    }
     }
     calculate_pos();
     create_boundries();
@@ -98,8 +150,9 @@ function draw(){
     cast_spell();
     check_if_hit();
     move_enemy();
+    move_chasers();
     //console.log(enemy.casting);
-    console.log(player.casting);
+    //console.log(player.casting);
 
 }
 
@@ -347,7 +400,7 @@ function cast_fire(dir){
             direction:"left",
             xPos:player.xPos,
             yPos:player.yPos,
-        }
+        };
         fire_spells.push(fire_spell);
 
     }
@@ -356,7 +409,7 @@ function cast_fire(dir){
             direction:"right",
             xPos:player.xPos,
             yPos:player.yPos,
-        }
+        };
         fire_spells.push(fire_spell);
 
     }
@@ -365,7 +418,7 @@ function cast_fire(dir){
             direction:"up",
             xPos:player.xPos,
             yPos:player.yPos,
-        }
+        };
         fire_spells.push(fire_spell);
 
     }
@@ -374,7 +427,7 @@ function cast_fire(dir){
             direction:"down",
             xPos:player.xPos,
             yPos:player.yPos,
-        }
+        };
         fire_spells.push(fire_spell);
 
     }
@@ -386,32 +439,40 @@ function move_spells(){
             fire.xPos -= 10;
             context.fillStyle = "orange";
             context.fillRect(fire.xPos,fire.yPos+50,20,10);
-            if(((enemy.xPos<fire.xPos)&&(fire.xPos< enemy.xPos+20))&&((enemy.yPos<fire.yPos+50)&&(fire.yPos+50< enemy.yPos+50))){
-                enemy.casting = "dead";
+            for(let item of objects){
+                if(((item.xPos<fire.xPos)&&(fire.xPos< item.xPos+20))&&((item.yPos<fire.yPos+50)&&(fire.yPos+50< item.yPos+50))){
+                    item.casting = "dead";
+                }
             }
         }
         else if(fire.direction == "right"){
             fire.xPos += 10;
             context.fillStyle = "orange";
             context.fillRect(fire.xPos+100,fire.yPos+50,20,10);
-            if(((enemy.xPos<fire.xPos)&&(fire.xPos< enemy.xPos+20))&&((enemy.yPos<fire.yPos+50)&&(fire.yPos+50< enemy.yPos+50))){
-                enemy.casting = "dead";
+            for(let item of objects){
+                if(((item.xPos<fire.xPos)&&(fire.xPos< item.xPos+20))&&((item.yPos<fire.yPos+50)&&(fire.yPos+50< item.yPos+50))){
+                    item.casting = "dead";
+                }
             }
         }
         else if(fire.direction == "up"){
             fire.yPos -= 10;
             context.fillStyle = "orange";
             context.fillRect(fire.xPos+50,fire.yPos+50,10,20);
-            if(((enemy.xPos<fire.xPos+50)&&(fire.xPos+50< enemy.xPos+20))&&((enemy.yPos<fire.yPos+50)&&(fire.yPos+50< enemy.yPos+50))){
-                enemy.casting = "dead";
+            for(let item of objects){
+                if(((item.xPos<fire.xPos+50)&&(fire.xPos+50< item.xPos+20))&&((item.yPos<fire.yPos+50)&&(fire.yPos+50< item.yPos+50))){
+                    item.casting = "dead";
+                }
             }
         }
         else if(fire.direction == "down"){
             fire.yPos += 10;
             context.fillStyle = "orange";
             context.fillRect(fire.xPos+80,fire.yPos+50,10,20);
-            if(((enemy.xPos<fire.xPos+80)&&(fire.xPos+80< enemy.xPos+20))&&((enemy.yPos<fire.yPos+50)&&(fire.yPos+50< enemy.yPos+50))){
-                enemy.casting = "dead";
+            for(let item of objects){
+                if(((item.xPos<fire.xPos+80)&&(fire.xPos+80< item.xPos+20))&&((item.yPos<fire.yPos+50)&&(fire.yPos+50< item.yPos+50))){
+                    item.casting = "dead";
+                }
             }
         }
     }
@@ -423,27 +484,29 @@ function defend_player(){
 }
 
 function move_enemy(){
-    let time = Date.now();
-    
-    if (time%10 === 0){
-        enemy.direction = Math.floor(Math.random() * 4);
-    }
-    if((enemy.direction === 0)&&(enemy.xPos > 0)){
-        enemy.xPos -= 1
-    }
-    else if((enemy.direction === 1)&&(enemy.xPos < canvas.width-100)){
-        enemy.xPos += 1
-    }
-    else if((enemy.direction === 2)&&(enemy.yPos < canvas.height-100)){
-        enemy.yPos += 1
-    }
-    else if((enemy.direction === 3)&&(enemy.yPos > 0)){
-        enemy.yPos -= 1
+    for(let item of enemys){
+        let time = Date.now();
+        
+        if (time%10 === 0){
+            item.direction = Math.floor(Math.random() * 4);
+        }
+        if((item.direction === 0)&&(item.xPos > 0)){
+            item.xPos -= 1;
+        }
+        else if((item.direction === 1)&&(item.xPos < canvas.width-100)){
+            item.xPos += 1;
+        }
+        else if((item.direction === 2)&&(item.yPos < canvas.height-100)){
+            item.yPos += 1;
+        }
+        else if((item.direction === 3)&&(item.yPos > 0)){
+            item.yPos -= 1;
+        }
     }
 }
 function check_if_hit(){
     if(!(player.casting==="defend")){
-        enemy_cast();
+        //enemy_cast();
     }
     for(let x of objects){
         if (x.casting === "disarmed"){
@@ -452,63 +515,90 @@ function check_if_hit(){
             x.time_until_rearm = 180;
         }
             x.time_until_rearm -= 1;
-            console.log(player.time_until_rearm);
-            context.drawImage(disarmImage,0,0,10,10, enemy.xPos, enemy.yPos-10,30,30);
+            //console.log(player.time_until_rearm);
+            context.drawImage(disarmImage,0,0,10,10, x.xPos, x.yPos-10,30,30);
         }
     }
 
 }
 function enemy_cast(){
-    if(!(enemy.casting === "disarmed")){
-    if((player.yPos < enemy.yPos)&&(player.yPos > enemy.yPos-100)){
-        if((enemy.direction === 0)&&(player.xPos<enemy.xPos)){
-            context.drawImage(disarmImage,0,0,10,10, enemy.xPos-20, enemy.yPos-10,30,30);
-            context.drawImage(disarmImage,0,0,10,10, enemy.xPos-40, enemy.yPos-10,30,30);
-            playerImage.src = "Wizard_Pack/Hit.png"
-            player.casting = "disarmed";
-            player.frameY = 0;
-            player.frameX = (player.frameX + 231)%1848;
-            if(player.xPos>-50){
-                player.xPos -= 2
+    for (let item of enemys) {
+        if(!(item.casting === "disarmed")){
+        if((player.yPos < item.yPos)&&(player.yPos > item.yPos-100)){
+            if((item.direction === 0)&&(player.xPos<item.xPos)){
+                context.drawImage(disarmImage,0,0,10,10, item.xPos-20, item.yPos-10,30,30);
+                context.drawImage(disarmImage,0,0,10,10, item.xPos-40, item.yPos-10,30,30);
+                playerImage.src = "Wizard_Pack/Hit.png";
+                player.casting = "disarmed";
+                player.frameY = 0;
+                player.frameX = (player.frameX + 231)%1848;
+                if(player.xPos>-50){
+                    player.xPos -= 2;
+                }
             }
-        }
-        else if((enemy.direction === 1)&&(player.xPos>enemy.xPos)){
-            context.drawImage(disarmImage,0,0,10,10, enemy.xPos, enemy.yPos-10,30,30);
-            playerImage.src = "Wizard_Pack/Hit_Right.png"
-            player.frameY = 0;
-            player.casting = "disarmed";
-            player.frameX = (player.frameX + 231)%1848;
-            if(player.xPos<canvas.width-100){
-                player.xPos += 2
+            else if((item.direction === 1)&&(player.xPos>item.xPos)){
+                context.drawImage(disarmImage,0,0,10,10, item.xPos, item.yPos-10,30,30);
+                playerImage.src = "Wizard_Pack/Hit_Right.png";
+                player.frameY = 0;
+                player.casting = "disarmed";
+                player.frameX = (player.frameX + 231)%1848;
+                if(player.xPos<canvas.width-100){
+                    player.xPos += 2;
+                }
             }
-        }
 
+        }
+        // new
+        else if((player.xPos < item.xPos)&&(player.xPos > item.xPos-100)){
+            if((item.direction === 2)&&(player.yPos>item.yPos)){
+                context.drawImage(disarmImage,0,0,10,10, item.xPos, item.yPos-10,30,30);
+                playerImage.src = "Wizard_Pack/Hit_down.png";
+                player.frameX = 0;
+                player.casting = "disarmed";
+                player.frameY = (player.frameY + 231)%1848;
+                if(player.yPos<canvas.height-100){
+                    player.yPos += 2;
+                }
+
+            }
+            else if((item.direction === 3)&&(player.yPos< item.yPos)){
+                context.drawImage(disarmImage,0,0,10,10, item.xPos, item.yPos-10,30,30);
+                playerImage.src = "Wizard_Pack/Hit_up.png";
+                player.frameX = 0;
+                player.casting = "disarmed";
+                player.frameY = (player.frameY + 231)%1848;
+                if(player.yPos>-50){
+                    player.yPos -= 2;
+                }
+
+            }
+        }
     }
-    // new
-    else if((player.xPos < enemy.xPos)&&(player.xPos > enemy.xPos-100)){
-        if((enemy.direction === 2)&&(player.yPos>enemy.yPos)){
-            context.drawImage(disarmImage,0,0,10,10, enemy.xPos, enemy.yPos-10,30,30);
-            playerImage.src = "Wizard_Pack/Hit_down.png";
-            player.frameX = 0;
-            player.casting = "disarmed";
-            player.frameY = (player.frameY + 231)%1848;
-            if(player.yPos<canvas.height-100){
-                player.yPos += 2
-            }
-
-        }
-        else if((enemy.direction === 3)&&(player.yPos< enemy.yPos)){
-            context.drawImage(disarmImage,0,0,10,10, enemy.xPos, enemy.yPos-10,30,30);
-            playerImage.src = "Wizard_Pack/Hit_up.png";
-            player.frameX = 0;
-            player.casting = "disarmed";
-            player.frameY = (player.frameY + 231)%1848;
-            if(player.yPos>-50){
-                player.yPos -= 2
-            }
-
-        }
     }
 }
-}
 
+function move_chasers(){
+    for(let x of chasers){
+        if (player.xPos+55 < x.xPos){
+            x.xPos -= 1;
+        }
+        else if (player.xPos > x.xPos){
+            x.xPos += 1;
+        }
+        if (player.yPos+50 < x.yPos){
+            x.yPos -= 1;
+        }
+        else if (player.yPos > x.yPos){
+            x.yPos += 1;
+        }
+        /*for (fire of fire_spells){
+            if(x.yPos<fire.xPos){
+
+            }
+        }*/
+    }
+}
+/*function remove(arrOriginal, elementToRemove){
+    // taken from stack overflow
+    return arrOriginal.filter(function(el){return el !== elementToRemove});
+}*/
