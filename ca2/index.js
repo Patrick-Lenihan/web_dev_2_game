@@ -7,7 +7,7 @@ let moveRight = false;
 let moveUp = false;
 let moveDown = false;
 
-
+let game_over = false;
 let fpsInterval = 1000 / 30; 
 let now;
 let then = Date.now();
@@ -36,6 +36,7 @@ let background = [
     [ 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45]];
 
 let player = {
+    type:"player",
     xPos:100,
     yPos:100,
     width: 10,
@@ -57,6 +58,7 @@ let chaserImage = new Image();
 
 // for enemy
 let enemy = {
+    type:"enemy",
     xPos: 200,
     yPos: 100,
     width:30,
@@ -70,6 +72,7 @@ let enemy = {
     time_until_rearm:180,
 };
 let chaser = {
+    type:"chaser",
     xPos: 50,
     yPos: 50,
     width:40,
@@ -81,10 +84,11 @@ let chaser = {
     casting:"no",
 };
 let objects = [player,enemy,chaser];
-let enemys = [enemy];
-let chasers = [chaser];
+//let enemys = [enemy];
+//let chasers = [chaser];
 for (let i = 0; i < 1; i += 1) {
     let enemy = {
+        type:"enemy",
         xPos: 200,
         yPos: 100,
         width:30,
@@ -97,7 +101,7 @@ for (let i = 0; i < 1; i += 1) {
         direction:0,
         time_until_rearm:180,
     };
-    enemys.push(enemy);
+    //enemys.push(enemy);
     objects.push(enemy);
 }
 let fire_spells = [];
@@ -116,33 +120,27 @@ function init() {
     draw();
 }
 function draw(){
+    if(game_over===false){
     window.requestAnimationFrame(draw);
-    console.log(enemys.length);
+    }
+    //console.log(enemys.length);
     controle_frame_rate();
     context.clearRect(0,0,canvas.width,canvas.height);
     display_background();
     context.drawImage(playerImage,player.frameX,player.frameY,200,200, player.xPos, player.yPos,150,150);
-    for (let x = 0; x < enemys.length; x += 1) {
-        if (!(enemys[x].casting === "dead")){
-            context.drawImage(enemyImage,enemys[x].frameX,enemys[x].frameY,30,50, enemys[x].xPos, enemys[x].yPos,enemys[x].width,enemys[x].height);
+    for (let x = 0; x < objects.length; x += 1){
+        if (!(objects[x].casting === "dead")){
+            if (objects[x].type === "enemy"){
+                context.drawImage(enemyImage,objects[x].frameX,objects[x].frameY,30,50, objects[x].xPos, objects[x].yPos,objects[x].width,objects[x].height);
+            }
+            else if(objects[x].type === "chaser"){
+                context.drawImage(chaserImage,objects[x].frameX,objects[x].frameY,40,50, objects[x].xPos, objects[x].yPos,objects[x].width,objects[x].height);
+            }
         }
         else{
-            //enemys.pop(item);
-            //objects.pop(item);
-            enemys.splice(x,1);
-            console.log(objects);
+            objects.splice(x,1);
         }
-    }
-    for (let x = 0; x < chasers.length; x += 1){
-        if(!(chasers[x].casting === "dead")){
-        context.drawImage(chaserImage,chasers[x].frameX,chasers[x].frameY,40,50, chasers[x].xPos, chasers[x].yPos,chasers[x].width,chasers[x].height);
-    }
-    else{
-        //objects.pop(x)
-        //objects = remove(objects,x)
-        objects.splice(x,1);
 
-    }
     }
     calculate_pos();
     create_boundries();
@@ -151,6 +149,11 @@ function draw(){
     check_if_hit();
     move_enemy();
     move_chasers();
+    if(game_over=== true){
+    context.fillStyle ="red"
+    context.font = "30px Arial"; 
+    context.fillText("GAME OVER", 150, 150);
+    }
     //console.log(enemy.casting);
     //console.log(player.casting);
 
@@ -484,29 +487,31 @@ function defend_player(){
 }
 
 function move_enemy(){
-    for(let item of enemys){
-        let time = Date.now();
-        
-        if (time%10 === 0){
-            item.direction = Math.floor(Math.random() * 4);
-        }
-        if((item.direction === 0)&&(item.xPos > 0)){
-            item.xPos -= 1;
-        }
-        else if((item.direction === 1)&&(item.xPos < canvas.width-100)){
-            item.xPos += 1;
-        }
-        else if((item.direction === 2)&&(item.yPos < canvas.height-100)){
-            item.yPos += 1;
-        }
-        else if((item.direction === 3)&&(item.yPos > 0)){
-            item.yPos -= 1;
+    for(let item of objects){
+        if(item.type === "enemy"){
+            let time = Date.now();
+            
+            if (time%10 === 0){
+                item.direction = Math.floor(Math.random() * 4);
+            }
+            if((item.direction === 0)&&(item.xPos > 0)){
+                item.xPos -= 1;
+            }
+            else if((item.direction === 1)&&(item.xPos < canvas.width-100)){
+                item.xPos += 1;
+            }
+            else if((item.direction === 2)&&(item.yPos < canvas.height-100)){
+                item.yPos += 1;
+            }
+            else if((item.direction === 3)&&(item.yPos > 0)){
+                item.yPos -= 1;
+            }
         }
     }
 }
 function check_if_hit(){
     if(!(player.casting==="defend")){
-        //enemy_cast();
+        enemy_cast();
     }
     for(let x of objects){
         if (x.casting === "disarmed"){
@@ -522,7 +527,8 @@ function check_if_hit(){
 
 }
 function enemy_cast(){
-    for (let item of enemys) {
+    for (let item of objects) {
+        if(item.type === "enemy")
         if(!(item.casting === "disarmed")){
         if((player.yPos < item.yPos)&&(player.yPos > item.yPos-100)){
             if((item.direction === 0)&&(player.xPos<item.xPos)){
@@ -578,24 +584,31 @@ function enemy_cast(){
 }
 
 function move_chasers(){
-    for(let x of chasers){
-        if (player.xPos+55 < x.xPos){
-            x.xPos -= 1;
-        }
-        else if (player.xPos > x.xPos){
-            x.xPos += 1;
-        }
-        if (player.yPos+50 < x.yPos){
-            x.yPos -= 1;
-        }
-        else if (player.yPos > x.yPos){
-            x.yPos += 1;
-        }
-        /*for (fire of fire_spells){
-            if(x.yPos<fire.xPos){
-
+    for(let x of objects){
+        if(x.type === "chaser"){
+            if (player.xPos+55 < x.xPos){
+                x.xPos -= 1;
             }
-        }*/
+            else if (player.xPos > x.xPos){
+                x.xPos += 1;
+            }
+            else if (player.yPos+50 < x.yPos){
+                x.yPos -= 1;
+            }
+            else if (player.yPos > x.yPos){
+                x.yPos += 1;
+            }
+            else{
+                game_over= true;
+                console.log(x.xPos, player.xPos);
+                console.log(x.yPos, player.yPos);
+            }
+            /*for (fire of fire_spells){
+                if(x.yPos<fire.xPos){
+
+                }
+            }*/
+        }
     }
 }
 /*function remove(arrOriginal, elementToRemove){
