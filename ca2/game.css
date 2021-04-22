@@ -2,3 +2,9 @@ canvas {
     display: block;
     margin: 1em auto;
 }
+h1,p{
+	display: inline-block;
+}
+p{
+	font-size: 30px;
+}
